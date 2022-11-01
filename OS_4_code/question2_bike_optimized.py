@@ -1,4 +1,5 @@
 import pandas as pd
+from sklearn import preprocessing
 
 imported_df = pd.read_csv("Question2_bike.csv")
 df = imported_df.copy()
@@ -17,37 +18,49 @@ for item in range(len(df)):
     # The following variables are calcualted according to the following formulas:
 
     # Total Bike Cost [dollars] = Chassis Cost + Battery Cost + Charger Cost + Motor and inverter Cost
-    df["Total Bike Cost [$1000]"][item] = \
-        df_battery_pack["Cost [$1000]"][battery_pack-1] + \
+    df["Total Bike Cost [$1000]"][item] = df_battery_pack["Cost [$1000]"][battery_pack-1] + \
         df_frame["Frame Cost [$1000]"][frame-1] + \
         df_battery_charger["Cost on vehicle [$1000]"][battery_charger-1] + \
         (df_motor["Cost [$]"][motor-1]/1000)
 
     # Total Vehicle Weight [kg] = Chassis Weight + Battery Weight + Charger Weight + Motor and inverter Weight + Passengers Weight
     # Assumption is that there is just one rider.
-    df["Total Bike Weight [kg]"][item] = 100 + \
-        df_battery_pack["Weight [kg]"][battery_pack-1] + \
-        df_frame["Weight [kg]"][frame-1] + \
-        df_battery_charger["Weight on vehicle [kg]"][battery_charger-1] + \
+    df["Total Bike Weight [kg]"][item] = 100 + df_battery_pack["Weight [kg]"][battery_pack-1] + \
+        df_frame["Weight [kg]"][frame-1] + df_battery_charger["Weight on vehicle [kg]"][battery_charger-1] + \
         df_motor["Weight [kg]"][motor-1]
     
     # Battery charge time [h] = Battery Capacity [kWh] / Charger Power [kW]
-    df["Battery charge time [h]"][item] = \
-        df_battery_pack["Capacity [kWh]"][battery_pack-1] / \
+    df["Battery charge time [h]"][item] = df_battery_pack["Capacity [kWh]"][battery_pack-1] / \
         df_battery_charger["Power [kW]"][battery_charger-1]
     
     # # Power Consumption [Wh/km] = Nominal Power Consumption Chassis [Wh/km] + 0.1*(Total Weight [kg] - Chassis Weight [kg] )
-    df["Power Consumption [Wh/km]"][item] = \
-        round( df_frame["Nominal Power consumption [Wh/km]"][frame-1] + \
-        (0.1 * (df["Total Bike Weight [kg]"][item] - \
-        df_frame["Weight [kg]"][frame-1])), 2)
+    df["Power Consumption [Wh/km]"][item] = round( df_frame["Nominal Power consumption [Wh/km]"][frame-1] + \
+        (0.1 * (df["Total Bike Weight [kg]"][item] - df_frame["Weight [kg]"][frame-1])), 2)
     
     # # Range [km] = Battery Capacity [Wh] / Power Consumption [Wh/km]
-    df["Range [km]"][item] = round(df_battery_pack["Capacity [kWh]"][battery_pack-1] / \
+    df["Range [km]"][item] = round(df_battery_pack["Capacity [kWh]"][battery_pack-1]*1000 / \
         df["Power Consumption [Wh/km]"][item], 2)
 
     # # Average Speed [km/h] = 700 * Motor Power [kW] / Total Weight [kg] 
     df["Average Speed [km/h]"][item] = round(700 * df_motor["Power [kW]"][motor-1] / \
         df["Total Bike Weight [kg]"][item], 2)
 
-df.to_csv("Q2_bike_output.csv")
+bike_cost_normilization         = 0
+bike_weight_normilization       = (1/5)
+bike_charge_time_normilization  = (1/5)
+bike_power_normilization        = (1/5)
+bike_range_normilization        = (1/5)
+bike_speed_normilization        = (1/5)
+
+df_max_scaled = df.copy()
+df_max_scaled["Normalized utility"] = round( \
+    ((df_max_scaled["Total Bike Cost [$1000]"].abs().min()    /   df_max_scaled["Total Bike Cost [$1000]"]) * bike_cost_normilization + \
+    (df_max_scaled["Total Bike Weight [kg]"].abs().min()     /   df_max_scaled["Total Bike Weight [kg]"]) * bike_weight_normilization + \
+    (df_max_scaled["Battery charge time [h]"].abs().min()    /   df_max_scaled["Battery charge time [h]"]) * bike_charge_time_normilization + \
+    (df_max_scaled["Power Consumption [Wh/km]"].abs().min()  /   df_max_scaled["Power Consumption [Wh/km]"]) * bike_power_normilization + \
+    (df_max_scaled["Range [km]"]                             /   df_max_scaled["Range [km]"].abs().max()) * bike_range_normilization + \
+    (df_max_scaled["Average Speed [km/h]"]                   /   df_max_scaled["Average Speed [km/h]"].abs().max()) * bike_speed_normilization), 3)
+
+#normalized_arr = preprocessing.normalize(df["Total Bike Cost [$1000]"])
+print(df_max_scaled["Normalized utility"])
+df_max_scaled.to_csv("Q2_bike_output.csv")
