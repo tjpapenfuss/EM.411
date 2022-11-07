@@ -42,25 +42,39 @@ for item in range(len(df)):
         df["Power Consumption [Wh/km]"][item], 2)
 
     # # Average Speed [km/h] = 700 * Motor Power [kW] / Total Weight [kg] 
-    df["Average Speed [km/h]"][item] = round(700 * df_motor["Power [kW]"][motor-1] / \
+    avg_speed = round(700 * df_motor["Power [kW]"][motor-1] / \
         df["Total Bike Weight [kg]"][item], 2)
+    if(avg_speed > 30):
+        df["Average Speed [km/h]"][item] = 30
+    else:
+        df["Average Speed [km/h]"][item] = avg_speed
 
-bike_cost_normilization         = 0
-bike_weight_normilization       = (1/5)
-bike_charge_time_normilization  = (1/5)
-bike_power_normilization        = (1/5)
-bike_range_normilization        = (1/5)
-bike_speed_normilization        = (1/5)
+    # Up-time [h] = Range [km] / Average Speed [km/h]
+    df["Up-time [h]"][item] = round(df["Range [km]"][item] / df["Average Speed [km/h]"][item], 2)
 
-df_max_scaled = df.copy()
-df_max_scaled["Normalized utility"] = round( \
-    ((df_max_scaled["Total Bike Cost [$1000]"].abs().min()    /   df_max_scaled["Total Bike Cost [$1000]"]) * bike_cost_normilization + \
-    (df_max_scaled["Total Bike Weight [kg]"].abs().min()     /   df_max_scaled["Total Bike Weight [kg]"]) * bike_weight_normilization + \
-    (df_max_scaled["Battery charge time [h]"].abs().min()    /   df_max_scaled["Battery charge time [h]"]) * bike_charge_time_normilization + \
-    (df_max_scaled["Power Consumption [Wh/km]"].abs().min()  /   df_max_scaled["Power Consumption [Wh/km]"]) * bike_power_normilization + \
-    (df_max_scaled["Range [km]"]                             /   df_max_scaled["Range [km]"].abs().max()) * bike_range_normilization + \
-    (df_max_scaled["Average Speed [km/h]"]                   /   df_max_scaled["Average Speed [km/h]"].abs().max()) * bike_speed_normilization), 3)
+    # Down-time [h] = Battery charge time [h] + 0.25
+    df["Down-time [h]"][item] = round(df["Battery charge time [h]"][item] + 0.25, 2)
+
+    # Availability [dml] = Up-time / (Up-time + Down-time) 
+    df["Availability [dml]"][item] = round(df["Up-time [h]"][item] / (df["Up-time [h]"][item] + df["Down-time [h]"][item]), 2)
+
+
+# bike_cost_normilization         = 0
+# bike_weight_normilization       = (1/5)
+# bike_charge_time_normilization  = (1/5)
+# bike_power_normilization        = (1/5)
+# bike_range_normilization        = (1/5)
+# bike_speed_normilization        = (1/5)
+
+# df_max_scaled = df.copy()
+# df_max_scaled["Normalized utility"] = round( \
+#     ((df_max_scaled["Total Bike Cost [$1000]"].abs().min()    /   df_max_scaled["Total Bike Cost [$1000]"]) * bike_cost_normilization + \
+#     (df_max_scaled["Total Bike Weight [kg]"].abs().min()     /   df_max_scaled["Total Bike Weight [kg]"]) * bike_weight_normilization + \
+#     (df_max_scaled["Battery charge time [h]"].abs().min()    /   df_max_scaled["Battery charge time [h]"]) * bike_charge_time_normilization + \
+#     (df_max_scaled["Power Consumption [Wh/km]"].abs().min()  /   df_max_scaled["Power Consumption [Wh/km]"]) * bike_power_normilization + \
+#     (df_max_scaled["Range [km]"]                             /   df_max_scaled["Range [km]"].abs().max()) * bike_range_normilization + \
+#     (df_max_scaled["Average Speed [km/h]"]                   /   df_max_scaled["Average Speed [km/h]"].abs().max()) * bike_speed_normilization), 3)
 
 #normalized_arr = preprocessing.normalize(df["Total Bike Cost [$1000]"])
-print(df_max_scaled["Normalized utility"])
-df_max_scaled.to_csv("Q2_bike_output.csv")
+# print(df_max_scaled["Normalized utility"])
+df.to_csv("Q2_bike_output.csv")

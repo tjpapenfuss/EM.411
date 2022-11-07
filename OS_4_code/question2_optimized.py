@@ -1,5 +1,7 @@
 import pandas as pd
 
+MAX_SPEED = 20
+
 imported_df = pd.read_csv("Question2.csv")
 df = imported_df.copy()
 df_battery_pack = pd.read_csv("battery_pack_car.csv")
@@ -20,6 +22,24 @@ for item in range(len(df)):
     battery_charger     = int(df["G"][item][1:2]) # Battery charger
     motor               = int(df["M"][item][1:2]) # Motor and inverter module
     autonomous_sys      = int(df["A"][item][1:2]) # Autonomous System
+
+    match chassis:
+        case 1:
+            number_of_passengers = 2
+        case 2:
+            number_of_passengers = 4
+        case 3:
+            number_of_passengers = 6
+        case 4:
+            number_of_passengers = 8
+        case 5:
+            number_of_passengers = 10
+        case 6:
+            number_of_passengers = 16
+        case 7:
+            number_of_passengers = 20
+        case 8:
+            number_of_passengers = 30
 
     # Total Vehicle Cost [dollars] = Chassis Cost + Battery Cost + Charger Cost + Motor and inverter Cost + Autonomy system cost
     df["Total Vehicle Cost [$1000]"][item] = df_battery_pack["Cost [$1000]"][battery_pack-1] + \
@@ -46,7 +66,20 @@ for item in range(len(df)):
         df["Power Consumption [Wh/km]"][item], 2)
 
     # Average Speed [km/h] = 700 * Motor Power [kW] / Total Weight [kg] 
-    df["Average Speed [km/h]"][item] = round(700 * \
-        df_motor["Power [kW]"][motor-1] / df["Total Vehicle Weight [kg]"][item], 2)
+    avg_speed = round(700 * df_motor["Power [kW]"][motor-1] / \
+        df["Total Vehicle Weight [kg]"][item], 2)
+    if(avg_speed > MAX_SPEED):
+        df["Average Speed [km/h]"][item] = MAX_SPEED
+    else:
+        df["Average Speed [km/h]"][item] = avg_speed
+
+    # Up-time [h] = Range [km] / Average Speed [km/h]
+    df["Up-time [h]"][item] = round(df["Range [km]"][item] / df["Average Speed [km/h]"][item], 2)
+
+    # Down-time [h] = Battery charge time [h] + 0.25
+    df["Down-time [h]"][item] = round(df["Battery charge time [h]"][item] + 0.25, 2)
+
+    # Availability [dml] = Up-time / (Up-time + Down-time) 
+    df["Availability [dml]"][item] = round(df["Up-time [h]"][item] / (df["Up-time [h]"][item] + df["Down-time [h]"][item]), 2)
 
 df.to_csv("Q2_output.csv")
